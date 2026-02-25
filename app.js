@@ -165,7 +165,7 @@
     }
 
     function renderResult(data) {
-        const transEl = document.getElementById('translation-content');
+        console.log('=== renderResult called ===', data.paragraphs?.length);
 
         // 加入顯示模式切換
         const controlsEl = document.getElementById('translation-controls');
