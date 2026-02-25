@@ -103,34 +103,46 @@ ${text}
     }
 
     async fetchUrlContent(url) {
-        if (!this.apiKey) {
-            throw new Error('請先在設定頁面填入 Gemini API Key');
-        }
+        const proxies = [
+            `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+        ];
 
-        const prompt = `請根據以下網址，推測其內容類型並生成一段相關的日文文本（約200-300字）供學習使用。
-
-網址：${url}
-
-直接回傳日文文本內容，不要加任何說明。`;
-
-        const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.2,
-                    maxOutputTokens: 4096
+        let html = '';
+        for (const proxyUrl of proxies) {
+            try {
+                const response = await fetch(proxyUrl);
+                if (response.ok) {
+                    html = await response.text();
+                    break;
                 }
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('無法取得網頁內容');
+            } catch (e) {
+                continue;
+            }
         }
 
-        const data = await response.json();
-        return data.candidates[0].content.parts[0].text;
+        if (!html) {
+            throw new Error('無法取得網頁內容，請改用文本輸入，直接複製網頁文字貼上');
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // 移除不需要的元素
+        doc.querySelectorAll('script, style, nav, header, footer, iframe, noscript').forEach(el => el.remove());
+
+        // 取得主要文字內容
+        const article = doc.querySelector('article') || doc.querySelector('main') || doc.body;
+        const text = article.innerText || article.textContent || '';
+
+        // 清理空白行，取前 3000 字
+        const cleaned = text.replace(/\n{3,}/g, '\n\n').trim().slice(0, 3000);
+
+        if (cleaned.length < 20) {
+            throw new Error('網頁內容太少，請改用文本輸入');
+        }
+
+        return cleaned;
     }
 }
 
