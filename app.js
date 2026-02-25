@@ -33,10 +33,6 @@
                 document.getElementById('user-name').textContent = user.displayName || user.email;
                 loadNotes();
                 loadStats();
-                const savedKey = localStorage.getItem('gemini_api_key');
-                if (savedKey) {
-                    document.getElementById('gemini-api-key').value = savedKey;
-                }
             } else {
                 currentUser = null;
                 document.getElementById('login-screen').classList.remove('hidden');
@@ -143,6 +139,13 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 分析中...';
 
+        // 監聽翻譯進度
+        const progressHandler = (e) => {
+            const { current, total } = e.detail;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 翻譯中 ${current}/${total} 段...`;
+        };
+        window.addEventListener('translate-progress', progressHandler);
+
         try {
             analysisResult = await gemini.analyze(text, difficulty);
             analysisResult.originalText = text;
@@ -154,6 +157,7 @@
         } catch (err) {
             showToast(err.message, 'error');
         } finally {
+            window.removeEventListener('translate-progress', progressHandler);
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-magic"></i> AI 分析';
         }
@@ -516,7 +520,6 @@
             console.error('載入統計失敗:', err);
         }
 
-        // 最近單字
         const recentEl = document.getElementById('recent-vocab');
         const allVocab = [];
         currentNotes.slice(0, 5).forEach(note => {
@@ -544,6 +547,7 @@
             console.error('記錄遊戲結果失敗:', err);
         }
     }
+
     // ===== Games =====
     function getAllVocab() {
         const all = [];
@@ -860,7 +864,6 @@
 
     // ===== Settings =====
     function initSettings() {
-        // 新增 Key
         document.getElementById('add-api-key').addEventListener('click', () => {
             const name = document.getElementById('key-name-input').value.trim();
             const key = document.getElementById('key-value-input').value.trim();
@@ -873,7 +876,6 @@
             showToast('API Key 已新增！', 'success');
         });
 
-        // 主題切換
         document.querySelectorAll('.theme-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
@@ -887,7 +889,6 @@
         document.body.setAttribute('data-theme', savedTheme);
         document.querySelector(`.theme-btn[data-theme="${savedTheme}"]`)?.classList.add('active');
 
-        // 舊版 Key 遷移
         const oldKey = localStorage.getItem('gemini_api_key');
         if (oldKey && gemini.keys.length === 0) {
             gemini.addKey('預設', oldKey);
