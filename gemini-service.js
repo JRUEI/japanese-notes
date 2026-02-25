@@ -158,21 +158,35 @@ ${text}
 
 日文文本：`;
 
-        const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.3,
-                    maxOutputTokens: 4096
-                }
-            })
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+
+        let response;
+        try {
+            response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.3,
+                        maxOutputTokens: 8192
+                    }
+                })
+            });
+        } catch (err) {
+            clearTimeout(timeout);
+            if (err.name === 'AbortError') {
+                throw new Error('請求超時（30秒），請確認模型名稱是否正確或稍後再試');
+            }
+            throw err;
+        }
+        clearTimeout(timeout);
 
         if (!response.ok) {
             const err = await response.json();
-            throw new Error(err.error?.message || '無法取得內容');
+            throw new Error(err.error?.message || 'Gemini API 呼叫失敗');
         }
 
         const data = await response.json();
