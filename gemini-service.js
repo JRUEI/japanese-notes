@@ -72,32 +72,59 @@ class GeminiService {
     }
 
     async analyzeLong(text, difficulty) {
-        // 按句號拆成兩半
-        const mid = Math.floor(text.length / 2);
-        let splitAt = text.indexOf('。', mid);
-        if (splitAt === -1) splitAt = text.indexOf('\n', mid);
-        if (splitAt === -1) splitAt = mid;
-        splitAt += 1;
+        // 按句號拆分成多段，每段約 1000 字
+        const chunks = [];
+        let remaining = text;
 
-        const part1 = text.slice(0, splitAt);
-        const part2 = text.slice(splitAt);
+        while (remaining.length > 0) {
+            if (remaining.length <= 1200) {
+                chunks.push(remaining);
+                break;
+            }
+            // 在 800~1200 字之間找句號斷點
+            let splitAt = -1;
+            for (let i = 1200; i >= 800; i--) {
+                if (remaining[i] === '。' || remaining[i] === '\n') {
+                    splitAt = i + 1;
+                    break;
+                }
+            }
+            if (splitAt === -1) splitAt = 1200;
 
-        // 分別分析
-        const [result1, result2] = await Promise.all([
-            this.callAnalyze(part1, difficulty, '前半'),
-            this.callAnalyze(part2, difficulty, '後半')
-        ]);
+            chunks.push(remaining.slice(0, splitAt));
+            remaining = remaining.slice(splitAt);
+        }
 
-        // 合併結果
-        return {
-            title: result1.title,
-            difficulty: result1.difficulty,
-            summary: result1.summary,
-            paragraphs: [...(result1.paragraphs || []), ...(result2.paragraphs || [])],
-            vocabulary: this.mergeUnique([...(result1.vocabulary || []), ...(result2.vocabulary || [])], 'word'),
-            grammar: this.mergeUnique([...(result1.grammar || []), ...(result2.grammar || [])], 'pattern'),
-            sentences: [...(result1.sentences || []), ...(result2.sentences || [])]
+        // 逐段分析
+        const results = [];
+        for (let i = 0; i < chunks.length; i++) {
+            const label = `第${i + 1}/${chunks.length}部分`;
+            const result = await this.callAnalyze(chunks[i], difficulty, label);
+            results.push(result);
+        }
+
+        // 合併所有結果
+        const merged = {
+            title: results[0].title,
+            difficulty: results[0].difficulty,
+            summary: results[0].summary,
+            paragraphs: [],
+            vocabulary: [],
+            grammar: [],
+            sentences: []
         };
+
+        for (const r of results) {
+            merged.paragraphs.push(...(r.paragraphs || []));
+            merged.vocabulary.push(...(r.vocabulary || []));
+            merged.grammar.push(...(r.grammar || []));
+            merged.sentences.push(...(r.sentences || []));
+        }
+
+        merged.vocabulary = this.mergeUnique(merged.vocabulary, 'word');
+        merged.grammar = this.mergeUnique(merged.grammar, 'pattern');
+
+        return merged;
     }
 
     mergeUnique(arr, key) {
