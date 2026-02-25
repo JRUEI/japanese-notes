@@ -148,6 +148,7 @@
 
         try {
             analysisResult = await gemini.analyze(text, difficulty);
+            console.log('=== RESULT ===', JSON.stringify(analysisResult.paragraphs?.slice(0, 2)));
             analysisResult.originalText = text;
             analysisResult.sourceUrl = document.getElementById('url-input').value.trim() || null;
             renderResult(analysisResult);
