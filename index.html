@@ -301,16 +301,16 @@
                 </div>
                 <div class="settings-section">
                     <div class="setting-item">
-                        <label>Gemini API Key</label>
-                        <p class="setting-desc">請輸入你的 Google Gemini API Key（<a href="https://aistudio.google.com/app/apikey" target="_blank">取得 API Key</a>）</p>
-                        <div class="api-key-input">
-                            <input type="password" id="gemini-api-key" placeholder="AIza...">
-                            <button id="toggle-key-visibility" class="toggle-vis-btn">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button id="save-api-key" class="save-key-btn">儲存</button>
+                        <label>Gemini API Keys</label>
+                        <p class="setting-desc">管理你的 API Key（<a href="https://aistudio.google.com/app/apikey" target="_blank">取得 API Key</a>）</p>
+                        <div class="api-key-add">
+                            <input type="text" id="key-name-input" placeholder="名稱（如：主要、備用）" class="key-name-input">
+                            <input type="password" id="key-value-input" placeholder="AIza..." class="key-value-input">
+                            <button id="add-api-key" class="save-key-btn">新增</button>
                         </div>
+                        <div id="api-key-list" class="api-key-list"></div>
                     </div>
+
                     <div class="setting-item">
                         <label>主題</label>
                         <div class="theme-options">
