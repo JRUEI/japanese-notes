@@ -161,12 +161,26 @@
 
     function renderResult(data) {
         const transEl = document.getElementById('translation-content');
-        transEl.innerHTML = (data.paragraphs || []).map(p => `
-            <div class="paragraph-pair">
-                <div class="para-original">${p.original}</div>
-                <div class="para-translation">${p.translation}</div>
-            </div>
-        `).join('');
+        transEl.innerHTML = (data.paragraphs || []).map(p => {
+            if (p.lines) {
+                let html = '<div class="paragraph-block">';
+                if (p.speaker) html += `<div class="paragraph-speaker">${p.speaker}</div>`;
+                html += p.lines.map(line => `
+                    <div class="paragraph-line">
+                        <div class="line-original">${line.original}</div>
+                        <div class="line-translation">${line.translation}</div>
+                    </div>
+                `).join('');
+                html += '</div>';
+                return html;
+            }
+            return `
+                <div class="paragraph-line">
+                    <div class="line-original">${p.original || ''}</div>
+                    <div class="line-translation">${p.translation || ''}</div>
+                </div>
+            `;
+        }).join('');
 
         const vocabEl = document.getElementById('vocab-list');
         const vocabs = data.vocabulary || [];
@@ -328,12 +342,26 @@
             <div class="result-card">
                 <h3><i class="fas fa-language"></i> 原文與翻譯</h3>
                 <div class="translation-content">
-                    ${(note.paragraphs || []).map(p => `
-                        <div class="paragraph-pair">
-                            <div class="para-original">${p.original}</div>
-                            <div class="para-translation">${p.translation}</div>
-                        </div>
-                    `).join('')}
+                    ${(note.paragraphs || []).map(p => {
+                        if (p.lines) {
+                            let html = '<div class="paragraph-block">';
+                            if (p.speaker) html += `<div class="paragraph-speaker">${p.speaker}</div>`;
+                            html += p.lines.map(line => `
+                                <div class="paragraph-line">
+                                    <div class="line-original">${line.original}</div>
+                                    <div class="line-translation">${line.translation}</div>
+                                </div>
+                            `).join('');
+                            html += '</div>';
+                            return html;
+                        }
+                        return `
+                            <div class="paragraph-line">
+                                <div class="line-original">${p.original || ''}</div>
+                                <div class="line-translation">${p.translation || ''}</div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             </div>
 
