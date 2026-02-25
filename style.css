@@ -379,7 +379,7 @@ body {
 }
 
 .view { display: none; }
-.view.active { display: block; }
+.view.active { display: block !important; }
 
 .view-header { margin-bottom: 2rem; }
 .view-header h2 { font-size: 1.6rem; margin-bottom: 0.5rem; }
