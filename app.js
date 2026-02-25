@@ -812,25 +812,20 @@
 
     // ===== Settings =====
     function initSettings() {
-        document.getElementById('save-api-key').addEventListener('click', () => {
-            const key = document.getElementById('gemini-api-key').value.trim();
+        // 新增 Key
+        document.getElementById('add-api-key').addEventListener('click', () => {
+            const name = document.getElementById('key-name-input').value.trim();
+            const key = document.getElementById('key-value-input').value.trim();
+            if (!name) return showToast('請輸入名稱', 'error');
             if (!key) return showToast('請輸入 API Key', 'error');
-            gemini.setApiKey(key);
-            showToast('API Key 已儲存！', 'success');
+            gemini.addKey(name, key);
+            document.getElementById('key-name-input').value = '';
+            document.getElementById('key-value-input').value = '';
+            renderKeyList();
+            showToast('API Key 已新增！', 'success');
         });
 
-        document.getElementById('toggle-key-visibility').addEventListener('click', () => {
-            const input = document.getElementById('gemini-api-key');
-            const icon = document.querySelector('#toggle-key-visibility i');
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.className = 'fas fa-eye-slash';
-            } else {
-                input.type = 'password';
-                icon.className = 'fas fa-eye';
-            }
-        });
-
+        // 主題切換
         document.querySelectorAll('.theme-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
@@ -843,6 +838,57 @@
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.body.setAttribute('data-theme', savedTheme);
         document.querySelector(`.theme-btn[data-theme="${savedTheme}"]`)?.classList.add('active');
+
+        // 舊版 Key 遷移
+        const oldKey = localStorage.getItem('gemini_api_key');
+        if (oldKey && gemini.keys.length === 0) {
+            gemini.addKey('預設', oldKey);
+            localStorage.removeItem('gemini_api_key');
+        }
+
+        renderKeyList();
+    }
+
+    function renderKeyList() {
+        const list = document.getElementById('api-key-list');
+        const keys = gemini.getKeys();
+
+        if (keys.length === 0) {
+            list.innerHTML = '<div style="color:var(--text-secondary);font-size:0.85rem;">尚未新增任何 API Key</div>';
+            return;
+        }
+
+        list.innerHTML = keys.map(k => `
+            <div class="api-key-item ${k.active ? 'active' : ''}">
+                <div class="key-info">
+                    <div class="key-info-name">${k.name}</div>
+                    <div class="key-info-value">${k.key}</div>
+                </div>
+                <div class="key-actions">
+                    <button class="key-use-btn ${k.active ? 'active' : ''}" data-id="${k.id}">
+                        ${k.active ? '✓ 使用中' : '切換'}
+                    </button>
+                    <button class="key-del-btn" data-id="${k.id}">刪除</button>
+                </div>
+            </div>
+        `).join('');
+
+        list.querySelectorAll('.key-use-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                gemini.setActiveKey(btn.dataset.id);
+                renderKeyList();
+                showToast('已切換 API Key', 'success');
+            });
+        });
+
+        list.querySelectorAll('.key-del-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!confirm('確定刪除這組 Key？')) return;
+                gemini.removeKey(btn.dataset.id);
+                renderKeyList();
+                showToast('已刪除', 'success');
+            });
+        });
     }
 
     // ===== Init =====
