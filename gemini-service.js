@@ -63,7 +63,56 @@ class GeminiService {
             throw new Error('請先在設定頁面新增 Gemini API Key');
         }
 
-        const prompt = `你是一位專業的日文教師。請完整分析以下日文文本，並以 JSON 格式回傳結果。
+        // 長文章自動拆分
+        if (text.length > 1500) {
+            return await this.analyzeLong(text, difficulty);
+        }
+
+        return await this.callAnalyze(text, difficulty);
+    }
+
+    async analyzeLong(text, difficulty) {
+        // 按句號拆成兩半
+        const mid = Math.floor(text.length / 2);
+        let splitAt = text.indexOf('。', mid);
+        if (splitAt === -1) splitAt = text.indexOf('\n', mid);
+        if (splitAt === -1) splitAt = mid;
+        splitAt += 1;
+
+        const part1 = text.slice(0, splitAt);
+        const part2 = text.slice(splitAt);
+
+        // 分別分析
+        const [result1, result2] = await Promise.all([
+            this.callAnalyze(part1, difficulty, '前半'),
+            this.callAnalyze(part2, difficulty, '後半')
+        ]);
+
+        // 合併結果
+        return {
+            title: result1.title,
+            difficulty: result1.difficulty,
+            summary: result1.summary,
+            paragraphs: [...(result1.paragraphs || []), ...(result2.paragraphs || [])],
+            vocabulary: this.mergeUnique([...(result1.vocabulary || []), ...(result2.vocabulary || [])], 'word'),
+            grammar: this.mergeUnique([...(result1.grammar || []), ...(result2.grammar || [])], 'pattern'),
+            sentences: [...(result1.sentences || []), ...(result2.sentences || [])]
+        };
+    }
+
+    mergeUnique(arr, key) {
+        const seen = new Set();
+        return arr.filter(item => {
+            if (seen.has(item[key])) return false;
+            seen.add(item[key]);
+            return true;
+        });
+    }
+
+    async callAnalyze(text, difficulty = 'auto', partLabel = '') {
+        const partNote = partLabel ? `（注意：這是文章的${partLabel}部分，請完整分析所有句子）` : '';
+
+        const prompt = `你是一位專業的日文教師。請完整分析以下日文文本，並以 JSON 格式回傳結果。${partNote}
 
 文本：
 ${text}
@@ -112,47 +161,57 @@ ${text}
 }
 
 重要要求：
-- paragraphs 必須包含原文的【每一個句子】，逐句翻譯，不可省略任何內容。將原文按句號（。）或換行拆分，每個句子都要有對應的中文翻譯
+- paragraphs 必須包含原文的【每一個句子】，逐句翻譯，不可省略任何內容
 - 單字至少提取 8-15 個重要單字
 - 文法至少提取 3-5 個文法點
 - 重點例句至少 3-5 句
 - 所有翻譯要自然通順
 - 標注 JLPT 等級`;
 
-        const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: {
-                    temperature: 0.3,
-                    maxOutputTokens: 16384,
-                    responseMimeType: "application/json"
-                }
-            })
-        });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 60000);
+
+        let response;
+        try {
+            response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.3,
+                        maxOutputTokens: 16384,
+                        responseMimeType: "application/json"
+                    }
+                })
+            });
+        } catch (err) {
+            clearTimeout(timeout);
+            if (err.name === 'AbortError') {
+                throw new Error('請求超時（60秒），請稍後再試');
+            }
+            throw err;
+        }
+        clearTimeout(timeout);
 
         if (!response.ok) {
             const err = await response.json();
             throw new Error(err.error?.message || 'Gemini API 呼叫失敗');
         }
 
-                const data = await response.json();
+        const data = await response.json();
         const rawText = data.candidates[0].content.parts[0].text;
         let cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
         try {
             return JSON.parse(cleaned);
         } catch (e) {
-            // 嘗試修復被截斷的 JSON
             try {
-                // 補上缺少的結尾
                 if (!cleaned.endsWith('}')) {
-                    // 找到最後一個完整的陣列項目
                     const lastBracket = cleaned.lastIndexOf('}');
                     if (lastBracket > 0) {
                         cleaned = cleaned.substring(0, lastBracket + 1);
-                        // 補上缺少的 ] 和 }
                         const openBrackets = (cleaned.match(/\[/g) || []).length;
                         const closeBrackets = (cleaned.match(/\]/g) || []).length;
                         const openBraces = (cleaned.match(/\{/g) || []).length;
@@ -164,7 +223,7 @@ ${text}
                 return JSON.parse(cleaned);
             } catch (e2) {
                 console.error('JSON parse error:', rawText.substring(0, 500));
-                throw new Error('AI 回傳格式異常，文章可能太長，請嘗試貼入較短的文本');
+                throw new Error('AI 回傳格式異常，請嘗試較短的文本');
             }
         }
     }
