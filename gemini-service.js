@@ -1,12 +1,57 @@
 class GeminiService {
     constructor() {
-        this.apiKey = localStorage.getItem('gemini_api_key') || '';
-        this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+        this.keys = JSON.parse(localStorage.getItem('gemini_api_keys') || '[]');
+        this.activeKeyId = localStorage.getItem('gemini_active_key') || '';
+        this.baseModel = 'gemini-3-flash-preview';
     }
 
+    get apiKey() {
+        const active = this.keys.find(k => k.id === this.activeKeyId);
+        return active ? active.key : '';
+    }
+
+    get baseUrl() {
+        return `https://generativelanguage.googleapis.com/v1beta/models/${this.baseModel}:generateContent`;
+    }
+
+    addKey(name, key) {
+        const id = Date.now().toString();
+        this.keys.push({ id, name, key });
+        this.saveKeys();
+        if (!this.activeKeyId) this.setActiveKey(id);
+        return id;
+    }
+
+    removeKey(id) {
+        this.keys = this.keys.filter(k => k.id !== id);
+        if (this.activeKeyId === id) {
+            this.activeKeyId = this.keys.length > 0 ? this.keys[0].id : '';
+        }
+        this.saveKeys();
+    }
+
+    setActiveKey(id) {
+        this.activeKeyId = id;
+        localStorage.setItem('gemini_active_key', id);
+    }
+
+    saveKeys() {
+        localStorage.setItem('gemini_api_keys', JSON.stringify(this.keys));
+        localStorage.setItem('gemini_active_key', this.activeKeyId);
+    }
+
+    getKeys() {
+        return this.keys.map(k => ({
+            id: k.id,
+            name: k.name,
+            key: k.key.slice(0, 8) + '...',
+            active: k.id === this.activeKeyId
+        }));
+    }
+
+    // 舊版相容
     setApiKey(key) {
-        this.apiKey = key;
-        localStorage.setItem('gemini_api_key', key);
+        this.addKey('預設', key);
     }
 
     getApiKey() {
@@ -15,7 +60,7 @@ class GeminiService {
 
     async analyze(text, difficulty = 'auto') {
         if (!this.apiKey) {
-            throw new Error('請先在設定頁面填入 Gemini API Key');
+            throw new Error('請先在設定頁面新增 Gemini API Key');
         }
 
         const prompt = `你是一位專業的日文教師。請分析以下日文文本，並以 JSON 格式回傳結果。
@@ -103,46 +148,41 @@ ${text}
     }
 
     async fetchUrlContent(url) {
-        const proxies = [
-            `https://corsproxy.io/?${encodeURIComponent(url)}`,
-            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-        ];
+        if (!this.apiKey) {
+            throw new Error('請先在設定頁面新增 Gemini API Key');
+        }
 
-        let html = '';
-        for (const proxyUrl of proxies) {
-            try {
-                const response = await fetch(proxyUrl);
-                if (response.ok) {
-                    html = await response.text();
-                    break;
+        const prompt = `請根據以下網址的主題，生成一段相關的日文文章（約300-500字），適合日文學習者閱讀。只回傳日文正文，不要加任何說明。
+
+網址：${url}
+
+日文文本：`;
+
+        const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.3,
+                    maxOutputTokens: 4096
                 }
-            } catch (e) {
-                continue;
-            }
+            })
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || '無法取得內容');
         }
 
-        if (!html) {
-            throw new Error('無法取得網頁內容，請改用文本輸入，直接複製網頁文字貼上');
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        if (text.length < 20) {
+            throw new Error('取得的內容太少，請改用文本輸入');
         }
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-
-        // 移除不需要的元素
-        doc.querySelectorAll('script, style, nav, header, footer, iframe, noscript').forEach(el => el.remove());
-
-        // 取得主要文字內容
-        const article = doc.querySelector('article') || doc.querySelector('main') || doc.body;
-        const text = article.innerText || article.textContent || '';
-
-        // 清理空白行，取前 3000 字
-        const cleaned = text.replace(/\n{3,}/g, '\n\n').trim().slice(0, 3000);
-
-        if (cleaned.length < 20) {
-            throw new Error('網頁內容太少，請改用文本輸入');
-        }
-
-        return cleaned;
+        return text;
     }
 }
 
