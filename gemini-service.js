@@ -126,7 +126,8 @@ ${text}
                 contents: [{ parts: [{ text: prompt }] }],
                 generationConfig: {
                     temperature: 0.3,
-                    maxOutputTokens: 8192
+                    maxOutputTokens: 16384,
+                    responseMimeType: "application/json"
                 }
             })
         });
@@ -136,15 +137,35 @@ ${text}
             throw new Error(err.error?.message || 'Gemini API 呼叫失敗');
         }
 
-        const data = await response.json();
+                const data = await response.json();
         const rawText = data.candidates[0].content.parts[0].text;
-        const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        let cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
         try {
             return JSON.parse(cleaned);
         } catch (e) {
-            console.error('JSON parse error:', cleaned);
-            throw new Error('AI 回傳格式異常，請重試');
+            // 嘗試修復被截斷的 JSON
+            try {
+                // 補上缺少的結尾
+                if (!cleaned.endsWith('}')) {
+                    // 找到最後一個完整的陣列項目
+                    const lastBracket = cleaned.lastIndexOf('}');
+                    if (lastBracket > 0) {
+                        cleaned = cleaned.substring(0, lastBracket + 1);
+                        // 補上缺少的 ] 和 }
+                        const openBrackets = (cleaned.match(/\[/g) || []).length;
+                        const closeBrackets = (cleaned.match(/\]/g) || []).length;
+                        const openBraces = (cleaned.match(/\{/g) || []).length;
+                        const closeBraces = (cleaned.match(/\}/g) || []).length;
+                        for (let i = 0; i < openBrackets - closeBrackets; i++) cleaned += ']';
+                        for (let i = 0; i < openBraces - closeBraces; i++) cleaned += '}';
+                    }
+                }
+                return JSON.parse(cleaned);
+            } catch (e2) {
+                console.error('JSON parse error:', rawText.substring(0, 500));
+                throw new Error('AI 回傳格式異常，文章可能太長，請嘗試貼入較短的文本');
+            }
         }
     }
 
