@@ -137,7 +137,7 @@
         }
 
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 分析中...';
+        btn.innerHTML = '<i class="fas fa-clipboard"></i> 等待 AI Studio 回覆...';
 
         // 監聽翻譯進度
         const progressHandler = (e) => {
