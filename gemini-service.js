@@ -99,27 +99,137 @@ class GeminiService {
     }
 
     // ===== 主分析入口 =====
+    // ===== 主分析入口（手動模式）=====
     async analyze(text, difficulty = 'auto') {
-        if (!this.apiKey) {
-            throw new Error('請先在設定頁面新增 Gemini API Key');
+        // 產生完整 prompt
+        const prompt = this.buildFullPrompt(text, difficulty);
+
+        // 複製到剪貼簿
+        await navigator.clipboard.writeText(prompt);
+
+        // 開啟 AI Studio
+        window.open('https://aistudio.google.com/app/prompts/new_chat', '_blank');
+
+        // 等使用者貼回結果
+        return new Promise((resolve, reject) => {
+            this._pendingResolve = resolve;
+            this._pendingReject = reject;
+            this._pendingText = text;
+
+            // 顯示貼回對話框
+            this.showPasteDialog();
+        });
+    }
+
+    buildFullPrompt(text, difficulty) {
+        const sample = text.slice(0, 3000);
+        return `你是一位專業的日文教師。請分析以下日文文本，完成翻譯與學習重點提取。
+
+===== 日文原文 =====
+${sample}
+
+===== 任務 =====
+難度設定：${difficulty === 'auto' ? '請自動判斷' : difficulty}
+
+請回傳以下 JSON（不要加 markdown 標記，直接回傳純 JSON）：
+{
+    "title": "簡短標題（中文，10字以內）",
+    "difficulty": "N5/N4/N3/N2/N1",
+    "summary": "摘要（中文，50字以內）",
+    "paragraphs": [
+        {
+            "speaker": "說話者（沒有就留空字串）",
+            "lines": [
+                {
+                    "original": "日文原句",
+                    "translation": "中文翻譯"
+                }
+            ]
         }
+    ],
+    "vocabulary": [
+        {
+            "word": "日文單字",
+            "reading": "平假名",
+            "meaning": "中文意思",
+            "pos": "詞性",
+            "level": "N5/N4/N3/N2/N1",
+            "example": "例句（日文）",
+            "example_translation": "例句翻譯（中文）"
+        }
+    ],
+    "grammar": [
+        {
+            "pattern": "文法句型",
+            "meaning": "中文說明",
+            "level": "N5/N4/N3/N2/N1",
+            "structure": "接續方式",
+            "example": "例句（日文）",
+            "example_translation": "例句翻譯（中文）"
+        }
+    ],
+    "sentences": [
+        {
+            "japanese": "重點例句",
+            "translation": "中文翻譯",
+            "note": "學習重點說明"
+        }
+    ]
+}
 
-        // 第一步：逐段翻譯全文（每段獨立請求，不會超時）
-        const paragraphs = await this.translateText(text);
+要求：
+- paragraphs：將原文每段逐句翻譯，每句一組 original + translation
+- 單字提取 10-20 個重要單字
+- 文法提取 3-5 個文法點
+- 重點例句 3-5 句
+- 標注 JLPT 等級
+- 直接回傳 JSON，不要任何多餘文字`;
+    }
 
-        // 第二步：提取單字、文法、例句（只做一次）
-        const analysis = await this.extractAnalysis(text, difficulty);
+    showPasteDialog() {
+        // 移除舊的
+        document.getElementById('paste-dialog')?.remove();
 
-        return {
-            title: analysis.title || '未命名',
-            difficulty: analysis.difficulty || 'N3',
-            summary: analysis.summary || '',
-            paragraphs: paragraphs,
-            vocabulary: analysis.vocabulary || [],
-            grammar: analysis.grammar || [],
-            sentences: analysis.sentences || [],
-            originalText: text
-        };
+        const dialog = document.createElement('div');
+        dialog.id = 'paste-dialog';
+        dialog.className = 'paste-dialog-overlay';
+        dialog.innerHTML = `
+            <div class="paste-dialog">
+                <h3>📋 Prompt 已複製到剪貼簿</h3>
+                <p>已開啟 AI Studio，請：</p>
+                <ol>
+                    <li>在 AI Studio 聊天框貼上（Ctrl+V）</li>
+                    <li>等 AI 回覆完整 JSON</li>
+                    <li>複製 AI 的回覆，貼到下方</li>
+                </ol>
+                <textarea id="paste-result" placeholder="把 AI Studio 的回覆貼在這裡..."></textarea>
+                <div class="paste-dialog-actions">
+                    <button id="paste-submit" class="save-btn">✅ 送出</button>
+                    <button id="paste-cancel" class="clear-btn">❌ 取消</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(dialog);
+
+        document.getElementById('paste-submit').addEventListener('click', () => {
+            const raw = document.getElementById('paste-result').value.trim();
+            if (!raw) return;
+
+            try {
+                let cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                const result = JSON.parse(cleaned);
+                result.originalText = this._pendingText;
+                dialog.remove();
+                this._pendingResolve(result);
+            } catch (e) {
+                alert('JSON 解析失敗，請確認複製了完整的 AI 回覆');
+            }
+        });
+
+        document.getElementById('paste-cancel').addEventListener('click', () => {
+            dialog.remove();
+            this._pendingReject(new Error('已取消'));
+        });
     }
 
     // ===== 翻譯：逐段送出，每段獨立請求 =====
