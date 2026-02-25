@@ -77,7 +77,7 @@ class GeminiService {
         let remaining = text;
 
         while (remaining.length > 0) {
-            if (remaining.length <= 1200) {
+            if (text.length > 1000) {
                 chunks.push(remaining);
                 break;
             }
