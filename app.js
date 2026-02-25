@@ -59,14 +59,12 @@
     function switchView(viewName) {
         document.querySelectorAll('.view').forEach(v => {
             v.classList.remove('active');
-            v.style.display = 'none';
         });
         document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
         const target = document.getElementById(`view-${viewName}`);
         if (target) {
             target.classList.add('active');
-            target.style.display = 'block';
         }
 
         const navBtn = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
