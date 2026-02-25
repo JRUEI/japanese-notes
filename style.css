@@ -1238,3 +1238,99 @@ body {
     .game-modes { grid-template-columns: repeat(2, 1fr); }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+/* API Key 管理 */
+.api-key-add {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.key-name-input {
+    width: 120px;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.9rem;
+}
+
+.key-value-input {
+    flex: 1;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: monospace;
+    font-size: 0.9rem;
+}
+
+.key-name-input:focus,
+.key-value-input:focus { outline: none; border-color: var(--accent); }
+
+.api-key-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.api-key-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.api-key-item.active {
+    border-color: var(--accent);
+    background: rgba(233, 69, 96, 0.08);
+}
+
+.key-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.key-info-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.key-info-value {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-family: monospace;
+}
+
+.key-actions {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.key-use-btn,
+.key-del-btn {
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.key-use-btn:hover { border-color: var(--accent); color: var(--accent); }
+.key-del-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.key-use-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+}
