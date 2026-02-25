@@ -101,51 +101,77 @@ class GeminiService {
     // ===== 主分析入口 =====
     // ===== 主分析入口（手動模式）=====
     async analyze(text, difficulty = 'auto') {
-        // 產生完整 prompt
-        const prompt = this.buildFullPrompt(text, difficulty);
-
-        // 複製到剪貼簿
-        await navigator.clipboard.writeText(prompt);
-
-        // 開啟 AI Studio
+        // 第一步：翻譯
+        const translatePrompt = this.buildTranslatePrompt(text);
+        await navigator.clipboard.writeText(translatePrompt);
         window.open('https://aistudio.google.com/app/prompts/new_chat', '_blank');
 
-        // 等使用者貼回結果
-        return new Promise((resolve, reject) => {
-            this._pendingResolve = resolve;
-            this._pendingReject = reject;
-            this._pendingText = text;
-
-            // 顯示貼回對話框
-            this.showPasteDialog();
+        const paragraphs = await new Promise((resolve, reject) => {
+            this.showPasteDialog('第 1 步：翻譯', '把翻譯結果貼回來', (raw) => {
+                try {
+                    let cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                    resolve(JSON.parse(cleaned));
+                } catch (e) {
+                    reject(new Error('翻譯 JSON 解析失敗'));
+                }
+            }, reject);
         });
+
+        // 第二步：分析
+        const analysisPrompt = this.buildAnalysisPrompt(text, difficulty);
+        await navigator.clipboard.writeText(analysisPrompt);
+        
+        const analysis = await new Promise((resolve, reject) => {
+            this.showPasteDialog('第 2 步：單字文法分析', 'Prompt 已複製，貼到同一個 AI Studio 對話中，再把結果貼回來', (raw) => {
+                try {
+                    let cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                    resolve(JSON.parse(cleaned));
+                } catch (e) {
+                    reject(new Error('分析 JSON 解析失敗'));
+                }
+            }, reject);
+        });
+
+        return {
+            title: analysis.title || '未命名',
+            difficulty: analysis.difficulty || 'N3',
+            summary: analysis.summary || '',
+            paragraphs: paragraphs,
+            vocabulary: analysis.vocabulary || [],
+            grammar: analysis.grammar || [],
+            sentences: analysis.sentences || [],
+            originalText: text
+        };
     }
 
-    buildFullPrompt(text, difficulty) {
-        return `你是一位專業的日文教師。請分析以下日文文本，完成翻譯與學習重點提取。
+    buildTranslatePrompt(text) {
+        return `將以下日文逐段逐句翻譯成中文。
+
+回傳 JSON 陣列（不要 markdown 標記，直接回傳純 JSON）：
+[
+    {
+        "speaker": "說話者（沒有就留空字串）",
+        "lines": [
+            { "original": "日文原句", "translation": "中文翻譯" }
+        ]
+    }
+]
+
+每個段落拆成多個句子，每句一組 original + translation。
 
 ===== 日文原文 =====
-${sample}
+${text}`;
+    }
 
-===== 任務 =====
-難度設定：${difficulty === 'auto' ? '請自動判斷' : difficulty}
+    buildAnalysisPrompt(text, difficulty) {
+        const sample = text.slice(0, 2000);
+        return `分析以下日文文本的學習重點。
 
-請回傳以下 JSON（不要加 markdown 標記，直接回傳純 JSON）：
+回傳 JSON（不要 markdown 標記，直接回傳純 JSON）：
 {
     "title": "簡短標題（中文，10字以內）",
     "difficulty": "N5/N4/N3/N2/N1",
     "summary": "摘要（中文，50字以內）",
-    "paragraphs": [
-        {
-            "speaker": "說話者（沒有就留空字串）",
-            "lines": [
-                {
-                    "original": "日文原句",
-                    "translation": "中文翻譯"
-                }
-            ]
-        }
-    ],
     "vocabulary": [
         {
             "word": "日文單字",
@@ -168,25 +194,18 @@ ${sample}
         }
     ],
     "sentences": [
-        {
-            "japanese": "重點例句",
-            "translation": "中文翻譯",
-            "note": "學習重點說明"
-        }
+        { "japanese": "重點例句", "translation": "中文翻譯", "note": "學習重點說明" }
     ]
 }
 
-要求：
-- paragraphs：將原文每段逐句翻譯，每句一組 original + translation
-- 單字提取 10-20 個重要單字
-- 文法提取 3-5 個文法點
-- 重點例句 3-5 句
-- 標注 JLPT 等級
-- 直接回傳 JSON，不要任何多餘文字`;
+要求：單字 10-20 個、文法 3-5 個、例句 3-5 句、標注 JLPT 等級
+難度設定：${difficulty === 'auto' ? '自動判斷' : difficulty}
+
+===== 日文原文 =====
+${sample}`;
     }
 
-    showPasteDialog() {
-        // 移除舊的
+    showPasteDialog(title, description, onSubmit, onCancel) {
         document.getElementById('paste-dialog')?.remove();
 
         const dialog = document.createElement('div');
@@ -194,10 +213,10 @@ ${sample}
         dialog.className = 'paste-dialog-overlay';
         dialog.innerHTML = `
             <div class="paste-dialog">
-                <h3>📋 Prompt 已複製到剪貼簿</h3>
-                <p>已開啟 AI Studio，請：</p>
+                <h3>📋 ${title}</h3>
+                <p>${description}</p>
                 <ol>
-                    <li>在 AI Studio 聊天框貼上（Ctrl+V）</li>
+                    <li>在 AI Studio 貼上 Prompt（已複製到剪貼簿）</li>
                     <li>等 AI 回覆完整 JSON</li>
                     <li>複製 AI 的回覆，貼到下方</li>
                 </ol>
@@ -213,21 +232,13 @@ ${sample}
         document.getElementById('paste-submit').addEventListener('click', () => {
             const raw = document.getElementById('paste-result').value.trim();
             if (!raw) return;
-
-            try {
-                let cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-                const result = JSON.parse(cleaned);
-                result.originalText = this._pendingText;
-                dialog.remove();
-                this._pendingResolve(result);
-            } catch (e) {
-                alert('JSON 解析失敗，請確認複製了完整的 AI 回覆');
-            }
+            dialog.remove();
+            onSubmit(raw);
         });
 
         document.getElementById('paste-cancel').addEventListener('click', () => {
             dialog.remove();
-            this._pendingReject(new Error('已取消'));
+            onCancel(new Error('已取消'));
         });
     }
 
