@@ -77,7 +77,7 @@ class GeminiService {
         let remaining = text;
 
         while (remaining.length > 0) {
-            if (text.length > 1000) {
+            if (text.length > 800) {
                 chunks.push(remaining);
                 break;
             }
@@ -308,7 +308,7 @@ ${text}
         const text = (container.innerText || container.textContent || '')
             .replace(/\n{3,}/g, '\n\n')
             .trim()
-            .slice(0, 3000);
+            .slice(0, 8000);
 
         if (text.length < 30) {
             throw new Error('網頁內容太少或無法解析。\n請直接複製網頁文字，貼到「文本輸入」使用。');
