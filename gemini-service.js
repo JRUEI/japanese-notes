@@ -148,52 +148,54 @@ ${text}
     }
 
     async fetchUrlContent(url) {
-        if (!this.apiKey) {
-            throw new Error('請先在設定頁面新增 Gemini API Key');
-        }
+        const proxies = [
+            `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+            `https://corsproxy.io/?${encodeURIComponent(url)}`,
+            `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+        ];
 
-        const prompt = `請根據以下網址的主題，生成一段相關的日文文章（約300-500字），適合日文學習者閱讀。只回傳日文正文，不要加任何說明。
-
-網址：${url}
-
-日文文本：`;
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-
-        let response;
-        try {
-            response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: 8192
-                    }
-                })
-            });
-        } catch (err) {
-            clearTimeout(timeout);
-            if (err.name === 'AbortError') {
-                throw new Error('請求超時（30秒），請確認模型名稱是否正確或稍後再試');
+        let html = '';
+        for (const proxyUrl of proxies) {
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                const response = await fetch(proxyUrl, { signal: controller.signal });
+                clearTimeout(timeout);
+                if (response.ok) {
+                    html = await response.text();
+                    if (html.length > 100) break;
+                }
+            } catch (e) {
+                continue;
             }
-            throw err;
-        }
-        clearTimeout(timeout);
-
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error?.message || 'Gemini API 呼叫失敗');
         }
 
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        if (!html) {
+            throw new Error('所有代理都無法取得網頁內容。\n請直接複製網頁文字，貼到「文本輸入」使用。');
+        }
 
-        if (text.length < 20) {
-            throw new Error('取得的內容太少，請改用文本輸入');
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        doc.querySelectorAll('script, style, nav, header, footer, iframe, noscript, aside, form').forEach(el => el.remove());
+
+        const selectors = ['article', '[role="main"]', 'main', '.content', '.post', '.entry', '#content', '.article-body'];
+        let container = null;
+        for (const sel of selectors) {
+            container = doc.querySelector(sel);
+            if (container && container.textContent.trim().length > 100) break;
+            container = null;
+        }
+
+        if (!container) container = doc.body;
+
+        const text = (container.innerText || container.textContent || '')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim()
+            .slice(0, 3000);
+
+        if (text.length < 30) {
+            throw new Error('網頁內容太少或無法解析。\n請直接複製網頁文字，貼到「文本輸入」使用。');
         }
 
         return text;
