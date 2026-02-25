@@ -58,9 +58,17 @@ class GeminiService {
     }
 
     // ===== 核心 API 呼叫 =====
-    async callAPI(prompt, maxTokens = 8192) {
+    async callAPI(prompt, maxTokens = 8192, useJson = false) {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 60000);
+        const timeout = setTimeout(() => controller.abort(), 30000);
+
+        const config = {
+            temperature: 0.3,
+            maxOutputTokens: maxTokens
+        };
+        if (useJson) {
+            config.responseMimeType = "application/json";
+        }
 
         let response;
         try {
@@ -70,17 +78,13 @@ class GeminiService {
                 signal: controller.signal,
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.3,
-                        maxOutputTokens: maxTokens,
-                        responseMimeType: "application/json"
-                    }
+                    generationConfig: config
                 })
             });
         } catch (err) {
             clearTimeout(timeout);
             if (err.name === 'AbortError') {
-                throw new Error('請求超時（60秒），請稍後再試');
+                throw new Error('請求超時，請稍後再試');
             }
             throw err;
         }
@@ -100,7 +104,7 @@ class GeminiService {
             throw new Error('請先在設定頁面新增 Gemini API Key');
         }
 
-        // 第一步：翻譯全文（分批，不會被截斷）
+        // 第一步：逐段翻譯全文（每段獨立請求，不會超時）
         const paragraphs = await this.translateText(text);
 
         // 第二步：提取單字、文法、例句（只做一次）
@@ -118,59 +122,66 @@ class GeminiService {
         };
     }
 
-    // ===== 翻譯：按段落拆分，分批送出 =====
+    // ===== 翻譯：逐段送出，每段獨立請求 =====
     async translateText(text) {
         const rawParagraphs = text.split(/\n+/).filter(p => p.trim().length > 0);
-        const batchSize = 5;
         const allParagraphs = [];
 
-        for (let i = 0; i < rawParagraphs.length; i += batchSize) {
-            const batch = rawParagraphs.slice(i, i + batchSize);
-            const result = await this.translateBatch(batch);
-            allParagraphs.push(...result);
+        for (let i = 0; i < rawParagraphs.length; i++) {
+            window.dispatchEvent(new CustomEvent('translate-progress', {
+                detail: { current: i + 1, total: rawParagraphs.length }
+            }));
+
+            const result = await this.translateSingle(rawParagraphs[i]);
+            allParagraphs.push(result);
         }
 
         return allParagraphs;
     }
 
-    async translateBatch(paragraphs) {
-        const numbered = paragraphs.map((p, i) => `[${i}] ${p}`).join('\n');
+    async translateSingle(paragraph) {
+        // 偵測說話者
+        let speaker = '';
+        let text = paragraph;
+        const speakerMatch = paragraph.match(/^(――|──|[^\s　]{1,8})[　\s]+/);
+        if (speakerMatch) {
+            speaker = speakerMatch[1];
+            text = paragraph.slice(speakerMatch[0].length);
+        }
 
-        const prompt = `請翻譯以下日文段落為中文。每段前面有編號。
+        // 純文字翻譯，不要求 JSON，最輕量
+        const prompt = `將以下日文翻譯成中文，只回傳中文翻譯，不要加任何說明：
 
-如果段落開頭有說話者名稱（如「芹澤」「MOTSU」「――」），請標示出來。
-
-回傳 JSON 陣列格式（不要加 markdown 標記）：
-[
-    {
-        "speaker": "說話者（沒有則留空字串）",
-        "lines": [
-            {
-                "original": "原文句子",
-                "translation": "中文翻譯"
-            }
-        ]
-    }
-]
-
-每個段落對應陣列中的一個物件。每個段落內按句號（。）拆成多個 lines，逐句翻譯，不可省略任何內容。
-
-日文段落：
-${numbered}
-
-直接回傳 JSON 陣列：`;
+${text}`;
 
         try {
-            const data = await this.callAPI(prompt, 4096);
-            const rawText = data.candidates[0].content.parts[0].text;
-            let cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-            return JSON.parse(cleaned);
+            const data = await this.callAPI(prompt, 1024, false);
+            const translation = data.candidates[0].content.parts[0].text.trim();
+
+            // 嘗試按句號對齊拆分
+            const origSentences = text.split(/(?<=。)/).filter(s => s.trim());
+            const transSentences = translation.split(/(?<=[。\.！？\!\?])/).filter(s => s.trim());
+
+            if (origSentences.length > 1 && origSentences.length === transSentences.length) {
+                return {
+                    speaker,
+                    lines: origSentences.map((s, i) => ({
+                        original: s.trim(),
+                        translation: transSentences[i].trim()
+                    }))
+                };
+            }
+
+            // 對不上就整段顯示
+            return {
+                speaker,
+                lines: [{ original: text, translation }]
+            };
         } catch (e) {
-            // 解析失敗就用簡單格式回傳
-            return paragraphs.map(p => ({
-                speaker: '',
-                lines: [{ original: p, translation: '（翻譯失敗，請重試）' }]
-            }));
+            return {
+                speaker,
+                lines: [{ original: text, translation: '（翻譯失敗）' }]
+            };
         }
     }
 
@@ -228,7 +239,7 @@ ${sample}
 
 直接回傳 JSON：`;
 
-        const data = await this.callAPI(prompt, 8192);
+        const data = await this.callAPI(prompt, 8192, true);
         const rawText = data.candidates[0].content.parts[0].text;
         let cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
