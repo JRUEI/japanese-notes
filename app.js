@@ -161,6 +161,26 @@
 
     function renderResult(data) {
         const transEl = document.getElementById('translation-content');
+
+        // 加入顯示模式切換
+        const controlsEl = document.getElementById('translation-controls');
+        if (controlsEl) {
+            controlsEl.innerHTML = `
+                <button class="trans-mode-btn active" data-mode="both">雙語對照</button>
+                <button class="trans-mode-btn" data-mode="original-only">僅原文</button>
+                <button class="trans-mode-btn" data-mode="translation-only">僅翻譯</button>
+            `;
+            controlsEl.querySelectorAll('.trans-mode-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    controlsEl.querySelectorAll('.trans-mode-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    transEl.className = 'translation-content';
+                    if (btn.dataset.mode !== 'both') transEl.classList.add(btn.dataset.mode);
+                });
+            });
+        }
+
+        transEl.className = 'translation-content';
         transEl.innerHTML = (data.paragraphs || []).map(p => {
             if (p.lines) {
                 let html = '<div class="paragraph-block">';
