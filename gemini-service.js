@@ -63,7 +63,7 @@ class GeminiService {
             throw new Error('請先在設定頁面新增 Gemini API Key');
         }
 
-        const prompt = `你是一位專業的日文教師。請分析以下日文文本，並以 JSON 格式回傳結果。
+        const prompt = `你是一位專業的日文教師。請完整分析以下日文文本，並以 JSON 格式回傳結果。
 
 文本：
 ${text}
@@ -77,8 +77,8 @@ ${text}
     "summary": "文本摘要（中文，50字以內）",
     "paragraphs": [
         {
-            "original": "原文段落",
-            "translation": "中文翻譯"
+            "original": "原文的一個句子（日文）",
+            "translation": "該句的中文翻譯"
         }
     ],
     "vocabulary": [
@@ -111,7 +111,8 @@ ${text}
     ]
 }
 
-要求：
+重要要求：
+- paragraphs 必須包含原文的【每一個句子】，逐句翻譯，不可省略任何內容。將原文按句號（。）或換行拆分，每個句子都要有對應的中文翻譯
 - 單字至少提取 8-15 個重要單字
 - 文法至少提取 3-5 個文法點
 - 重點例句至少 3-5 句
