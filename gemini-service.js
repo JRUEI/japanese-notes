@@ -122,7 +122,6 @@ class GeminiService {
     }
 
     buildFullPrompt(text, difficulty) {
-        const sample = text.slice(0, 3000);
         return `你是一位專業的日文教師。請分析以下日文文本，完成翻譯與學習重點提取。
 
 ===== 日文原文 =====
