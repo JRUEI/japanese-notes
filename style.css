@@ -1241,7 +1241,7 @@ body {
 
 /* 段落分組 */
 .paragraph-block {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--border);
 }
@@ -1255,31 +1255,79 @@ body {
 .paragraph-speaker {
     font-weight: 700;
     color: var(--accent);
-    margin-bottom: 0.5rem;
-    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
+    padding: 0.3rem 0.6rem;
+    background: rgba(233, 69, 96, 0.1);
+    border-radius: 4px;
+    display: inline-block;
 }
 
 .paragraph-line {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
 }
 
 .paragraph-line:last-child {
     margin-bottom: 0;
 }
 
+.paragraph-line:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .line-original {
     color: var(--text-primary);
-    font-size: 1rem;
-    line-height: 1.8;
-    margin-bottom: 0.2rem;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    margin-bottom: 0.4rem;
+    font-weight: 500;
 }
 
 .line-translation {
     color: var(--text-secondary);
-    font-size: 0.9rem;
-    line-height: 1.6;
-    padding-left: 0.5rem;
-    border-left: 2px solid var(--accent);
+    font-size: 0.92rem;
+    line-height: 1.7;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--accent);
+    opacity: 0.85;
+}
+
+/* 翻譯顯示模式切換 */
+.translation-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.trans-mode-btn {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.trans-mode-btn:hover { border-color: var(--accent); color: var(--accent); }
+.trans-mode-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+/* 只顯示原文模式 */
+.translation-content.original-only .line-translation { display: none; }
+
+/* 只顯示翻譯模式 */
+.translation-content.translation-only .line-original { display: none; }
+.translation-content.translation-only .line-translation {
+    border-left: none;
+    padding-left: 0;
+    color: var(--text-primary);
+    font-size: 1rem;
+    opacity: 1;
 }
 
 /* API Key 管理 */
