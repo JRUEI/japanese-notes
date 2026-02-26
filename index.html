@@ -50,6 +50,23 @@
             <div class="sidebar-history">
                 <h3><i class="fas fa-history"></i> <span>歷史記錄</span></h3>
                 <div class="history-search"><input type="text" id="history-search" placeholder="搜尋筆記..."></div>
+                <div class="history-filters">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all" title="全部"><i class="fas fa-list"></i></button>
+                        <button class="filter-tab" data-filter="folder" title="資料夾"><i class="fas fa-folder"></i></button>
+                        <button class="filter-tab" data-filter="tag" title="標籤"><i class="fas fa-tags"></i></button>
+                    </div>
+                    <div id="filter-folder-area" class="filter-area hidden">
+                        <div class="filter-add-row">
+                            <input type="text" id="new-folder-input" placeholder="新資料夾..." class="filter-input">
+                            <button id="add-folder-btn" class="filter-add-btn"><i class="fas fa-plus"></i></button>
+                        </div>
+                        <div id="folder-list" class="filter-list"></div>
+                    </div>
+                    <div id="filter-tag-area" class="filter-area hidden">
+                        <div id="tag-cloud" class="tag-cloud"></div>
+                    </div>
+                </div>
                 <div id="history-list" class="history-list"></div>
             </div>
         </aside>
