@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-    <!-- 載入畫面 -->
     <div id="loading-screen" class="loading-screen">
         <div class="loading-content">
             <div class="loading-kanji">勉強中</div>
@@ -17,7 +16,6 @@
         </div>
     </div>
 
-    <!-- 登入畫面 -->
     <div id="login-screen" class="login-screen hidden">
         <div class="login-card">
             <div class="login-logo">
@@ -26,292 +24,178 @@
                 <p>你的 AI 日文學習夥伴</p>
             </div>
             <button id="google-login-btn" class="google-login-btn">
-                <i class="fab fa-google"></i>
-                使用 Google 帳號登入
+                <i class="fab fa-google"></i> 使用 Google 帳號登入
             </button>
         </div>
     </div>
 
-    <!-- 主應用 -->
     <div id="app" class="app-container hidden">
-        <!-- 側邊欄 -->
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-header">
                 <span class="logo-kanji-small">日</span>
                 <span class="sidebar-title">日本語ノート</span>
-                <button id="sidebar-toggle" class="sidebar-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
+                <button id="sidebar-toggle" class="sidebar-toggle"><i class="fas fa-bars"></i></button>
             </div>
-
             <div class="sidebar-user">
                 <img id="user-avatar" src="" alt="avatar" class="user-avatar">
                 <span id="user-name" class="user-name"></span>
-                <button id="logout-btn" class="logout-btn" title="登出">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
+                <button id="logout-btn" class="logout-btn" title="登出"><i class="fas fa-sign-out-alt"></i></button>
             </div>
-
             <nav class="sidebar-nav">
-                <button class="nav-btn active" data-view="input">
-                    <i class="fas fa-plus-circle"></i>
-                    <span>新增學習</span>
-                </button>
-                <button class="nav-btn" data-view="review">
-                    <i class="fas fa-gamepad"></i>
-                    <span>遊戲複習</span>
-                </button>
-                <button class="nav-btn" data-view="stats">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>學習統計</span>
-                </button>
-                <button class="nav-btn" data-view="settings">
-                    <i class="fas fa-cog"></i>
-                    <span>設定</span>
-                </button>
+                <button class="nav-btn active" data-view="input"><i class="fas fa-plus-circle"></i><span>新增學習</span></button>
+                <button class="nav-btn" data-view="review"><i class="fas fa-gamepad"></i><span>遊戲複習</span></button>
+                <button class="nav-btn" data-view="stats"><i class="fas fa-chart-bar"></i><span>學習統計</span></button>
+                <button class="nav-btn" data-view="settings"><i class="fas fa-cog"></i><span>設定</span></button>
             </nav>
-
             <div class="sidebar-history">
                 <h3><i class="fas fa-history"></i> <span>歷史記錄</span></h3>
-                <div class="history-search">
-                    <input type="text" id="history-search" placeholder="搜尋筆記...">
-                </div>
-                <div id="history-list" class="history-list">
-                    <!-- 動態載入 -->
-                </div>
+                <div class="history-search"><input type="text" id="history-search" placeholder="搜尋筆記..."></div>
+                <div id="history-list" class="history-list"></div>
             </div>
         </aside>
 
-        <!-- 主內容區 -->
         <main class="main-content">
-            <!-- 新增學習 View -->
+            <!-- 新增學習 -->
             <div id="view-input" class="view active">
                 <div class="view-header">
                     <h2>📝 新增學習內容</h2>
-                    <p>貼上日文網址或文本，AI 會幫你分析翻譯並提取知識點</p>
+                    <p>貼上日文網址或文本，透過 AI Studio 分析翻譯</p>
                 </div>
-
-                <div class="input-section">
-                    <div class="input-tabs">
-                        <button class="input-tab active" data-input="text">
-                            <i class="fas fa-file-alt"></i> 文本輸入
-                        </button>
-                        <button class="input-tab" data-input="url">
-                            <i class="fas fa-link"></i> 網址輸入
-                        </button>
-                    </div>
-
-                    <div id="text-input-area" class="input-area">
-                        <textarea id="text-input" placeholder="在此貼上日文文本...&#10;&#10;例如：新聞文章、訪談內容、歌詞等"></textarea>
-                    </div>
-
-                    <div id="url-input-area" class="input-area hidden">
-                        <div class="url-input-wrapper">
-                            <i class="fas fa-globe"></i>
-                            <input type="url" id="url-input" placeholder="貼上日文網頁網址...">
-                        </div>
-                        <p class="url-hint">支援新聞、部落格、NHK 等日文網頁</p>
-                    </div>
-
-                    <div class="input-options">
-                        <label class="option-label">
-                            <span>難度等級：</span>
-                            <select id="difficulty-select">
-                                <option value="auto">自動偵測</option>
-                                <option value="N5">N5 (初級)</option>
-                                <option value="N4">N4</option>
-                                <option value="N3">N3 (中級)</option>
-                                <option value="N2">N2</option>
-                                <option value="N1">N1 (高級)</option>
-                            </select>
-                        </label>
-                    </div>
-
-                    <button id="analyze-btn" class="analyze-btn">
-                        <i class="fas fa-magic"></i> AI 分析
-                    </button>
-                </div>
-
-                <!-- 分析結果 -->
-                <div id="result-section" class="result-section hidden">
-                    <div class="result-actions">
-                        <button id="save-note-btn" class="save-btn">
-                            <i class="fas fa-save"></i> 儲存筆記
-                        </button>
-                        <button id="clear-result-btn" class="clear-btn">
-                            <i class="fas fa-trash"></i> 清除
-                        </button>
-                    </div>
-
-                    <!-- 原文與翻譯 -->
-                    <div class="result-card">
-                        <h3><i class="fas fa-language"></i> 原文與翻譯</h3>
-                        <div id="translation-controls" class="translation-controls"></div>
-                        <div id="translation-content" class="translation-content">
-                            <!-- 動態載入 -->
+                <div class="workspace">
+                    <div class="workspace-left">
+                        <div class="panel">
+                            <div class="panel-header">📥 輸入來源</div>
+                            <div class="panel-body">
+                                <div class="input-tabs">
+                                    <button class="input-tab active" data-input="text"><i class="fas fa-file-alt"></i> 文本</button>
+                                    <button class="input-tab" data-input="url"><i class="fas fa-link"></i> 網址</button>
+                                </div>
+                                <div id="url-input-area" class="url-input-area hidden">
+                                    <div class="url-input-wrapper">
+                                        <i class="fas fa-globe"></i>
+                                        <input type="url" id="url-input" placeholder="貼上日文網頁網址...">
+                                    </div>
+                                    <button id="fetch-url-btn" class="fetch-url-btn"><i class="fas fa-download"></i> 擷取網頁</button>
+                                </div>
+                                <textarea id="text-input" class="text-input" placeholder="在此貼上日文文本..."></textarea>
+                                <div class="input-options">
+                                    <label class="option-label">
+                                        <span>難度：</span>
+                                        <select id="difficulty-select">
+                                            <option value="auto">自動偵測</option>
+                                            <option value="N5">N5</option>
+                                            <option value="N4">N4</option>
+                                            <option value="N3">N3</option>
+                                            <option value="N2">N2</option>
+                                            <option value="N1">N1</option>
+                                        </select>
+                                    </label>
+                                    <button id="start-analyze-btn" class="analyze-btn"><i class="fas fa-magic"></i> 開始分析</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- 單字列表 -->
-                    <div class="result-card">
-                        <h3><i class="fas fa-book"></i> 單字 <span id="vocab-count" class="count-badge">0</span></h3>
-                        <div id="vocab-list" class="vocab-list">
-                            <!-- 動態載入 -->
+                    <div class="workspace-right">
+                        <div id="workspace-placeholder" class="workspace-placeholder">
+                            <div class="placeholder-icon">🎯</div>
+                            <div class="placeholder-text">在左邊輸入日文內容，按「開始分析」產生 Prompt</div>
                         </div>
-                    </div>
-
-                    <!-- 文法點 -->
-                    <div class="result-card">
-                        <h3><i class="fas fa-puzzle-piece"></i> 文法 <span id="grammar-count" class="count-badge">0</span></h3>
-                        <div id="grammar-list" class="grammar-list">
-                            <!-- 動態載入 -->
+                        <div id="step-translate" class="step-panel hidden">
+                            <div class="panel">
+                                <div class="panel-header"><span class="step-badge">步驟 1</span> 翻譯 Prompt <button id="copy-translate-prompt" class="copy-btn"><i class="fas fa-copy"></i> 複製</button></div>
+                                <div class="panel-body"><pre id="translate-prompt" class="prompt-preview"></pre></div>
+                            </div>
+                            <div class="panel">
+                                <div class="panel-header">📋 貼回 AI 翻譯結果</div>
+                                <div class="panel-body">
+                                    <textarea id="translate-result" class="result-textarea" placeholder="把 AI Studio 的翻譯 JSON 貼在這裡..."></textarea>
+                                    <div id="translate-error" class="step-error hidden"></div>
+                                    <button id="submit-translate" class="step-submit-btn"><i class="fas fa-check"></i> 送出翻譯 → 進入下一步</button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- 例句 -->
-                    <div class="result-card">
-                        <h3><i class="fas fa-comment-dots"></i> 重點例句</h3>
-                        <div id="sentences-list" class="sentences-list">
-                            <!-- 動態載入 -->
+                        <div id="step-analysis" class="step-panel hidden">
+                            <div class="panel">
+                                <div class="panel-header"><span class="step-badge">步驟 2</span> 分析 Prompt <button id="copy-analysis-prompt" class="copy-btn"><i class="fas fa-copy"></i> 複製</button></div>
+                                <div class="panel-body"><pre id="analysis-prompt" class="prompt-preview"></pre></div>
+                            </div>
+                            <div class="panel">
+                                <div class="panel-header">📋 貼回 AI 分析結果</div>
+                                <div class="panel-body">
+                                    <textarea id="analysis-result" class="result-textarea" placeholder="把 AI Studio 的分析 JSON 貼在這裡..."></textarea>
+                                    <div id="analysis-error" class="step-error hidden"></div>
+                                    <button id="submit-analysis" class="step-submit-btn"><i class="fas fa-check"></i> 送出分析 → 產生結果</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="step-result" class="step-panel hidden">
+                            <div class="result-actions-bar">
+                                <button id="save-note-btn" class="save-btn"><i class="fas fa-save"></i> 儲存筆記</button>
+                                <button id="reset-workspace-btn" class="clear-btn"><i class="fas fa-redo"></i> 重新開始</button>
+                            </div>
+                            <div class="result-card"><h3><i class="fas fa-language"></i> 原文與翻譯</h3><div id="translation-controls" class="translation-controls"></div><div id="translation-content" class="translation-content"></div></div>
+                            <div class="result-card"><h3><i class="fas fa-book"></i> 單字 <span id="vocab-count" class="count-badge">0</span></h3><div id="vocab-list" class="vocab-list"></div></div>
+                            <div class="result-card"><h3><i class="fas fa-puzzle-piece"></i> 文法 <span id="grammar-count" class="count-badge">0</span></h3><div id="grammar-list" class="grammar-list"></div></div>
+                            <div class="result-card"><h3><i class="fas fa-comment-dots"></i> 重點例句</h3><div id="sentences-list" class="sentences-list"></div></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 遊戲複習 View -->
+            <!-- 遊戲複習 -->
             <div id="view-review" class="view hidden">
-                <div class="view-header">
-                    <h2>🎮 遊戲複習</h2>
-                    <p>透過互動遊戲鞏固你學過的內容</p>
-                </div>
-
+                <div class="view-header"><h2>🎮 遊戲複習</h2></div>
                 <div class="game-modes">
-                    <div class="game-card" data-game="flashcard">
-                        <div class="game-icon">🃏</div>
-                        <h3>單字卡</h3>
-                        <p>翻牌記憶單字</p>
-                        <span class="game-count" id="flashcard-count">0 個單字</span>
-                    </div>
-                    <div class="game-card" data-game="quiz">
-                        <div class="game-icon">❓</div>
-                        <h3>選擇題</h3>
-                        <p>四選一測驗</p>
-                        <span class="game-count" id="quiz-count">0 題可用</span>
-                    </div>
-                    <div class="game-card" data-game="typing">
-                        <div class="game-icon">⌨️</div>
-                        <h3>打字練習</h3>
-                        <p>看中文打日文</p>
-                        <span class="game-count" id="typing-count">0 個單字</span>
-                    </div>
-                    <div class="game-card" data-game="matching">
-                        <div class="game-icon">🔗</div>
-                        <h3>配對遊戲</h3>
-                        <p>日文配中文</p>
-                        <span class="game-count" id="matching-count">0 組可用</span>
-                    </div>
+                    <div class="game-card" data-game="flashcard"><div class="game-icon">🃏</div><h3>單字卡</h3><p>翻牌記憶單字</p><span class="game-count" id="flashcard-count">0 個單字</span></div>
+                    <div class="game-card" data-game="quiz"><div class="game-icon">❓</div><h3>選擇題</h3><p>四選一測驗</p><span class="game-count" id="quiz-count">0 題可用</span></div>
+                    <div class="game-card" data-game="typing"><div class="game-icon">⌨️</div><h3>打字練習</h3><p>看中文打日文</p><span class="game-count" id="typing-count">0 個單字</span></div>
+                    <div class="game-card" data-game="matching"><div class="game-icon">🔗</div><h3>配對遊戲</h3><p>日文配中文</p><span class="game-count" id="matching-count">0 組可用</span></div>
                 </div>
-
-                <!-- 遊戲區域 -->
                 <div id="game-area" class="game-area hidden">
                     <div class="game-header">
-                        <button id="back-to-games" class="back-btn">
-                            <i class="fas fa-arrow-left"></i> 返回
-                        </button>
-                        <div class="game-progress">
-                            <span id="game-score">0</span> 分
-                            <div class="progress-bar">
-                                <div id="game-progress-bar" class="progress-fill"></div>
-                            </div>
-                            <span id="game-progress-text">0/0</span>
-                        </div>
+                        <button id="back-to-games" class="back-btn"><i class="fas fa-arrow-left"></i> 返回</button>
+                        <div class="game-progress"><span id="game-score">0</span> 分<div class="progress-bar"><div id="game-progress-bar" class="progress-fill"></div></div><span id="game-progress-text">0/0</span></div>
                     </div>
-                    <div id="game-content" class="game-content">
-                        <!-- 動態載入遊戲內容 -->
-                    </div>
+                    <div id="game-content" class="game-content"></div>
                 </div>
             </div>
 
-            <!-- 筆記詳情 View -->
+            <!-- 筆記詳情 -->
             <div id="view-detail" class="view hidden">
                 <div class="view-header">
-                    <button id="back-to-list" class="back-btn">
-                        <i class="fas fa-arrow-left"></i> 返回
-                    </button>
+                    <button id="back-to-list" class="back-btn"><i class="fas fa-arrow-left"></i> 返回</button>
                     <div class="detail-actions">
-                        <button id="review-note-btn" class="action-btn" title="複習此筆記">
-                            <i class="fas fa-gamepad"></i>
-                        </button>
-                        <button id="delete-note-btn" class="action-btn danger" title="刪除筆記">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button id="delete-note-btn" class="action-btn danger" title="刪除筆記"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
-                <div id="detail-content" class="detail-content">
-                    <!-- 動態載入 -->
-                </div>
+                <div id="detail-content" class="detail-content"></div>
             </div>
 
-            <!-- 學習統計 View -->
+            <!-- 學習統計 -->
             <div id="view-stats" class="view hidden">
-                <div class="view-header">
-                    <h2>📊 學習統計</h2>
-                </div>
+                <div class="view-header"><h2>📊 學習統計</h2></div>
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">📝</div>
-                        <div class="stat-value" id="stat-notes">0</div>
-                        <div class="stat-label">筆記總數</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📖</div>
-                        <div class="stat-value" id="stat-vocab">0</div>
-                        <div class="stat-label">學過單字</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🧩</div>
-                        <div class="stat-value" id="stat-grammar">0</div>
-                        <div class="stat-label">文法點</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🎮</div>
-                        <div class="stat-value" id="stat-games">0</div>
-                        <div class="stat-label">遊戲次數</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🔥</div>
-                        <div class="stat-value" id="stat-streak">0</div>
-                        <div class="stat-label">連續天數</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🏆</div>
-                        <div class="stat-value" id="stat-accuracy">0%</div>
-                        <div class="stat-label">平均正確率</div>
-                    </div>
-                </div>
-                <div class="stats-detail">
-                    <h3>最近學習的單字</h3>
-                    <div id="recent-vocab" class="recent-vocab-list"></div>
+                    <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-value" id="stat-notes">0</div><div class="stat-label">筆記總數</div></div>
+                    <div class="stat-card"><div class="stat-icon">📖</div><div class="stat-value" id="stat-vocab">0</div><div class="stat-label">學過單字</div></div>
+                    <div class="stat-card"><div class="stat-icon">🧩</div><div class="stat-value" id="stat-grammar">0</div><div class="stat-label">文法點</div></div>
+                    <div class="stat-card"><div class="stat-icon">🎮</div><div class="stat-value" id="stat-games">0</div><div class="stat-label">遊戲次數</div></div>
                 </div>
             </div>
 
-            <!-- 設定 View -->
+            <!-- 設定 -->
             <div id="view-settings" class="view hidden">
-                <div class="view-header">
-                    <h2>⚙️ 設定</h2>
-                </div>
+                <div class="view-header"><h2>⚙️ 設定</h2></div>
                 <div class="settings-section">
                     <div class="setting-item">
                         <label>Gemini API Keys</label>
                         <p class="setting-desc">管理你的 API Key（<a href="https://aistudio.google.com/app/apikey" target="_blank">取得 API Key</a>）</p>
                         <div class="api-key-add">
-                            <input type="text" id="key-name-input" placeholder="名稱（如：主要、備用）" class="key-name-input">
+                            <input type="text" id="key-name-input" placeholder="名稱" class="key-name-input">
                             <input type="password" id="key-value-input" placeholder="AIza..." class="key-value-input">
                             <button id="add-api-key" class="save-key-btn">新增</button>
                         </div>
                         <div id="api-key-list" class="api-key-list"></div>
                     </div>
-
                     <div class="setting-item">
                         <label>主題</label>
                         <div class="theme-options">
@@ -324,14 +208,11 @@
         </main>
     </div>
 
-    <!-- Toast 通知 -->
     <div id="toast-container" class="toast-container"></div>
 
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
     <script src="firebase-config.js"></script>
     <script src="gemini-service.js"></script>
     <script src="app.js"></script>
