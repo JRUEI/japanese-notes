@@ -39,7 +39,7 @@ class GeminiService {
         return this.keys.map(k => ({
             id: k.id,
             name: k.name,
-            key: k.key.slice(0, 8) + '...',
+            key: k.key,
             active: k.id === this.activeKeyId
         }));
     }
