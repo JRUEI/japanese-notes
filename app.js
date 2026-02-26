@@ -549,6 +549,131 @@ function showToast(msg, type) {
                 note + '</div>';
         }).join('');
 
+        var folderOptions = '<option value="">不分類</option>' +
+            storage.getFolders().map(function(f) {
+                return '<option value="' + f + '"' + (a.folder === f ? ' selected' : '') + '>' + f + '</option>';
+            }).join('');
+
+        var editTagsHtml = (a.tags || []).map(function(t) {
+            return '<span class="tag-chip">' + t + '<button class="edit-tag-remove" data-tag="' + t + '">&times;</button></span>';
+        }).join('');
+
+        c.innerHTML = '<h2>' + (a.title || '未命名') + '</h2>' +
+            '<div class="detail-meta">' +
+            '<span class="detail-level">' + (a.difficulty || '') + '</span>' +
+            '<span class="detail-date">' + new Date(a.savedAt).toLocaleDateString() + '</span>' +
+            folder +
+            '</div>' +
+            (tags ? '<div class="detail-tags" id="detail-tags-display">' + tags + '</div>' : '<div class="detail-tags" id="detail-tags-display"></div>') +
+            urlHtml +
+            '<div id="edit-form" class="edit-form hidden">' +
+            '<div class="panel"><div class="panel-header"><i class="fas fa-edit"></i> 編輯筆記</div><div class="panel-body">' +
+            '<div class="note-info-form">' +
+            '<div class="form-row"><label>標題</label><input type="text" id="edit-title" class="form-input" value="' + (a.title || '').replace(/"/g, '&quot;') + '"></div>' +
+            '<div class="form-row"><label>資料夾</label><div class="folder-select-wrapper"><select id="edit-folder" class="form-input">' + folderOptions + '</select><span class="folder-or">或</span><input type="text" id="edit-new-folder" class="form-input" placeholder="新資料夾..."></div></div>' +
+            '<div class="form-row"><label>標籤</label><div class="tags-input-wrapper"><div id="edit-tags-container" class="tags-container">' + editTagsHtml + '</div><input type="text" id="edit-tag-input" class="form-input tag-input" placeholder="輸入標籤後按 Enter"></div></div>' +
+            '<div class="edit-actions"><button id="save-edit-btn" class="save-btn"><i class="fas fa-check"></i> 儲存修改</button><button id="cancel-edit-btn" class="clear-btn"><i class="fas fa-times"></i> 取消</button></div>' +
+            '</div></div></div>' +
+            '</div>' +
+            '<div class="detail-section"><h3><i class="fas fa-language"></i> 原文與翻譯</h3>' + translationHtml + '</div>' +
+            '<div class="detail-section"><h3><i class="fas fa-book"></i> 單字 (' + (a.vocabulary || []).length + ')</h3><div class="vocab-list">' + vocabHtml + '</div></div>' +
+            '<div class="detail-section"><h3><i class="fas fa-puzzle-piece"></i> 文法 (' + (a.grammar || []).length + ')</h3><div class="grammar-list">' + grammarHtml + '</div></div>' +
+            '<div class="detail-section"><h3><i class="fas fa-comment-dots"></i> 重點例句</h3><div class="sentences-list">' + sentencesHtml + '</div></div>';
+
+        // 編輯用的 tags 狀態
+        var editTags = (a.tags || []).slice();
+
+        function renderEditTags() {
+            var container = document.getElementById('edit-tags-container');
+            if (!container) return;
+            container.innerHTML = editTags.map(function(t) {
+                return '<span class="tag-chip">' + t + '<button class="edit-tag-remove" data-tag="' + t + '">&times;</button></span>';
+            }).join('');
+            container.querySelectorAll('.edit-tag-remove').forEach(function(b) {
+                b.addEventListener('click', function() {
+                    editTags = editTags.filter(function(t) { return t !== b.dataset.tag; });
+                    renderEditTags();
+                });
+            });
+        }
+
+        // 編輯標籤輸入
+        var editTagInput = document.getElementById('edit-tag-input');
+        if (editTagInput) editTagInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var tag = e.target.value.trim();
+                if (tag && editTags.indexOf(tag) < 0) { editTags.push(tag); renderEditTags(); }
+                e.target.value = '';
+            }
+        });
+
+        renderEditTags();
+
+        // 編輯按鈕
+        document.getElementById('delete-note-btn').onclick = function() {
+            if (confirm('確定刪除？')) {
+                storage.deleteArticle(id);
+                showToast('已刪除', 'success');
+                refresh();
+                switchView('input');
+            }
+        };
+
+        document.getElementById('back-to-list').onclick = function() { switchView('input'); };
+
+        // 儲存編輯
+        var saveEditBtn = document.getElementById('save-edit-btn');
+        if (saveEditBtn) saveEditBtn.addEventListener('click', function() {
+            var articles = storage.getArticles();
+            var idx = -1;
+            for (var i = 0; i < articles.length; i++) {
+                if (articles[i].id === id) { idx = i; break; }
+            }
+            if (idx === -1) return showToast('找不到筆記', 'error');
+
+            var newTitle = document.getElementById('edit-title').value.trim();
+            if (newTitle) articles[idx].title = newTitle;
+
+            var newFolder = document.getElementById('edit-new-folder').value.trim();
+            if (newFolder) {
+                storage.addFolder(newFolder);
+                articles[idx].folder = newFolder;
+            } else {
+                articles[idx].folder = document.getElementById('edit-folder').value;
+            }
+
+            articles[idx].tags = editTags.slice();
+
+            localStorage.setItem(storage.ARTICLES_KEY, JSON.stringify(articles));
+            showToast('已更新', 'success');
+            refresh();
+            showDetail(id);
+        });
+
+        // 取消編輯
+        var cancelEditBtn = document.getElementById('cancel-edit-btn');
+        if (cancelEditBtn) cancelEditBtn.addEventListener('click', function() {
+            document.getElementById('edit-form').classList.add('hidden');
+        });
+    }
+
+        var grammarHtml = (a.grammar || []).map(function(g) {
+            return '<div class="grammar-card">' +
+                '<div class="grammar-pattern">' + g.pattern + '</div>' +
+                '<div class="grammar-meaning">' + g.meaning + '</div>' +
+                '<div class="grammar-meta"><span class="grammar-level">' + (g.level || '') + '</span></div>' +
+                '</div>';
+        }).join('');
+
+        var sentencesHtml = (a.sentences || []).map(function(s) {
+            var note = s.note ? '<div class="sentence-note">' + s.note + '</div>' : '';
+            return '<div class="sentence-card">' +
+                '<div class="sentence-jp">' + s.japanese + '</div>' +
+                '<div class="sentence-zh">' + s.translation + '</div>' +
+                note + '</div>';
+        }).join('');
+
         c.innerHTML = '<h2>' + (a.title || '未命名') + '</h2>' +
             '<div class="detail-meta">' +
             '<span class="detail-level">' + (a.difficulty || '') + '</span>' +
