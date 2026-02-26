@@ -621,7 +621,16 @@ function showToast(msg, type) {
         };
 
         document.getElementById('back-to-list').onclick = function() { switchView('input'); };
-
+        var editBtn = document.getElementById('edit-note-btn');
+        if (editBtn) editBtn.addEventListener('click', function() {
+            var form = document.getElementById('edit-form');
+            form.classList.toggle('hidden');
+            if (!form.classList.contains('hidden')) {
+                document.getElementById('edit-title').focus();
+                form.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+        
         // 儲存編輯
         var saveEditBtn = document.getElementById('save-edit-btn');
         if (saveEditBtn) saveEditBtn.addEventListener('click', function() {
