@@ -146,6 +146,42 @@
                             </div>
                         </div>
                         <div id="step-result" class="step-panel hidden">
+                            <div class="panel">
+                                <div class="panel-header">📝 筆記資訊</div>
+                                <div class="panel-body">
+                                    <div class="note-info-form">
+                                        <div class="form-row">
+                                            <label>標題</label>
+                                            <input type="text" id="note-title-input" class="form-input" placeholder="自訂標題（留空使用 AI 產生的）">
+                                        </div>
+                                        <div class="form-row">
+                                            <label>資料夾</label>
+                                            <div class="folder-select-wrapper">
+                                                <select id="note-folder-select" class="form-input">
+                                                    <option value="">不分類</option>
+                                                </select>
+                                                <span class="folder-or">或</span>
+                                                <input type="text" id="note-new-folder" class="form-input" placeholder="建立新資料夾...">
+                                            </div>
+                                        </div>
+                                        <div class="form-row">
+                                            <label>標籤 <span class="label-hint">（自由輸入，例如：花澤香菜、鬼滅之刃）</span></label>
+                                            <div class="tags-input-wrapper">
+                                                <div id="tags-container" class="tags-container"></div>
+                                                <input type="text" id="tag-input" class="form-input tag-input" placeholder="輸入標籤後按 Enter">
+                                            </div>
+                                            <div id="recent-tags" class="recent-tags"></div>
+                                        </div>
+                                        <div id="note-source-url" class="form-row hidden">
+                                            <label>來源網址</label>
+                                            <div class="source-url-display">
+                                                <i class="fas fa-link"></i>
+                                                <a id="note-url-link" href="#" target="_blank"></a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="result-actions-bar">
                                 <button id="save-note-btn" class="save-btn"><i class="fas fa-save"></i> 儲存筆記</button>
                                 <button id="reset-workspace-btn" class="clear-btn"><i class="fas fa-redo"></i> 重新開始</button>
