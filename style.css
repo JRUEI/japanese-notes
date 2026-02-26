@@ -794,3 +794,17 @@ body {
     color: var(--primary); font-size: 0.85rem;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* ===== Edit Form ===== */
+.edit-form { margin-bottom: 1.5rem; }
+.edit-form .panel { border: 2px solid var(--primary); }
+.edit-actions {
+    display: flex; gap: 0.5rem; margin-top: 1rem;
+    justify-content: flex-end;
+}
+.action-btn {
+    padding: 0.4rem 0.7rem; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--card-bg); color: var(--text);
+    cursor: pointer; transition: all 0.2s;
+}
+.action-btn:hover { border-color: var(--primary); color: var(--primary); }
+.action-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
